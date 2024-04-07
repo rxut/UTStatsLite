@@ -12,9 +12,7 @@ var string zzMutatorList;
 var float zzEndTime;
 var float zzWarmupTime;
 
-var int currentid;
-var int zzPHPos; // Position in the PlayerHistory Array
-
+var int CurrentID;
 var UTSAceHandler AceHandler;
 
 struct PlayerStruct
@@ -65,7 +63,6 @@ function LogStandardInfo()
     local int i;
     local string zzServerActors;
     local mutator zzMutator;
-    local bool bInsta;
 
     // Setup the buffer
     zzBuffer = "";
@@ -87,7 +84,7 @@ function LogStandardInfo()
         bAceInstalled = true;
 
     Log("### -----------------------------------");
-    Log("###        UTStatsLite is running"      );
+    Log("### --   UTStatsLite is running    --");
     Log("### -----------------------------------");
     Log("###");
     Log("### - Version      : "$zzVersion);
@@ -112,11 +109,11 @@ function LogStandardInfo()
 
    LogEventString(GetTimeStamp()$Chr(9)$"info"$Chr(9)$"AceInstalled"$Chr(9)$string(bAceInstalled));
 
-   // Check for insta
-   foreach AllActors(class'Mutator',zzMutator)
+   // Check for InstaGib
+  foreach AllActors(class'Mutator',zzMutator)
    {
-       if (zzMutator.IsA('InstaGibDM'))
-           bInsta = true;
+       if ((Arena(zzMutator) != none && ClassIsChildOf(Arena(zzMutator).DefaultWeapon, class'SuperShockRifle')))
+           LogEventString(GetTimeStamp()$Chr(9)$"game"$Chr(9)$"insta"$chr(9)$"True");
    }
 
    AceHandler = Spawn(class'UTSAceHandler');
@@ -202,7 +199,7 @@ function LogKill( int KillerID, int VictimID, string KillerWeaponName, string Vi
       bFirstBlood = true;
     }
 
-    LogSpree (zzKillerID,zzVictimID);
+    LogSpree(zzKillerID,zzVictimID);
     LogCombo(zzKillerID);
 
     if (PlayerInfo[zzVictimID].bHasFlag)
@@ -230,18 +227,46 @@ function LogSpree (int KillerID,int VictimID)
     i = PlayerInfo[VictimID].zzSpree;
     PlayerInfo[VictimID].zzSpree = 0;
 
-    if (i < 5) // No Spree
-      return;
-    else if (i<10)
-      spree = "spree_kill";
-    else if (i<15)
-      spree = "spree_rampage";
-    else if (i<20)
-      spree = "spree_dom";
-    else if (i<25)
-      spree = "spree_uns";
-    else
-      spree = "spree_god";
+    switch (i)
+    {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+            return;
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+            spree = "spree_kill";
+            break;
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+            spree = "spree_rampage";
+            break;
+        case 15:
+        case 16:
+        case 17:
+        case 18:
+        case 19:
+            spree = "spree_dom";
+            break;
+        case 20:
+        case 21:
+        case 22:
+        case 23:
+        case 24:
+            spree = "spree_uns";
+            break;
+        default:
+            spree = "spree_god";
+            break;
+    }
 
     LogEventString(GetTimeStamp()$Chr(9)$"spree"$chr(9)$spree$chr(9)$PlayerInfo[VictimID].zzID);
 }
@@ -465,20 +490,19 @@ function Tick (float DeltaTime)
 
    super.Tick(DeltaTime);
 
-   if (Level.Game.CurrentID > currentID)
+   if (Level.Game.CurrentID > CurrentID)
    {
        for( NewPawn = Level.PawnList ; NewPawn!=None ; NewPawn = NewPawn.NextPawn )
        {
-           if(NewPawn.bIsPlayer && NewPawn.PlayerReplicationInfo.PlayerID == currentID)
+           if(NewPawn.bIsPlayer && NewPawn.PlayerReplicationInfo.PlayerID == CurrentID)
            {
 	           SetIP(NewPawn);
 			   break;
            }
        }
-       ++currentID;
+       ++CurrentID;
    }
 }
-
 
 function SetIP( Pawn Player)
 {
@@ -517,7 +541,6 @@ function LogGameEnd( string Reason )
 
     zzEndTime = Level.TimeSeconds;
 
-
     Super.LogGameEnd(Reason);
 
     for (i=0;i<32;++i)
@@ -541,12 +564,14 @@ function LogGameEnd( string Reason )
 
 function AddToBuffer ( int zzPlayerID )
 {
-    local float zzEfficiency,zzTTL,zzTimeOnServer;
+    local float zzEfficiency,zzTTL,zzTimeOnServer,CurrentTime;
 
     if (PlayerInfo[zzPlayerID].zzPawn == none)
         return;
 
-    zzTimeOnServer = Min(Level.TimeSeconds-PlayerInfo[zzPlayerID].zzJoinTime,Level.TimeSeconds-zzWarmupTime);
+    CurrentTime = Level.TimeSeconds;
+
+    zzTimeOnServer = Min(CurrentTime-PlayerInfo[zzPlayerID].zzJoinTime,CurrentTime-zzWarmupTime);
 
     if (PlayerInfo[zzPlayerID].zzDeaths != 0)
       zzTTL = zzTimeOnServer/(PlayerInfo[zzPlayerID].zzDeaths) ;
@@ -565,7 +590,7 @@ function AddToBuffer ( int zzPlayerID )
     BufferLog("stat_player","suicides",PlayerInfo[zzPlayerID].zzID,string(PlayerInfo[zzPlayerID].zzSuicides));
     BufferLog("stat_player","teamkills",PlayerInfo[zzPlayerID].zzID,string(PlayerInfo[zzPlayerID].zzTeamKills));
     BufferLog("stat_player","efficiency",PlayerInfo[zzPlayerID].zzID,string(zzEfficiency));
-    BufferLog("stat_player","time_on_server",PlayerInfo[zzPlayerID].zzID,string(Level.TimeSeconds-PlayerInfo[zzPlayerID].zzJoinTime));
+    BufferLog("stat_player","time_on_server",PlayerInfo[zzPlayerID].zzID,string(CurrentTime-PlayerInfo[zzPlayerID].zzJoinTime));
     BufferLog("stat_player","ttl",PlayerInfo[zzPlayerID].zzID,string(zzTTL));
 
 }
@@ -596,6 +621,10 @@ function ProcessBuffer () // This will cause extreme cpu usage on the server for
         }
     }
 }
+
+// =============================================================================
+// SetEncoding ~ Set the encoding to UTF8_BOM if the engine supports it
+// =============================================================================
 
 function SetEncoding() {
     local int EngineVersion;
