@@ -21,7 +21,7 @@ struct PlayerStruct
    var int zzID,zzSpree,zzCombo,zzKills,zzDeaths,zzSuicides,zzTeamKills;
    var float zzLastKill, zzEndTime, zzJoinTime;
    var bool bHasFlag;
-   var string zzLogin,zzIP,zzHWID,zzMAC1,zzMAC2;
+   var string zzPlayerName,zzLogin,zzIP,zzHWID,zzMAC1,zzMAC2;
 };
 
 var PlayerStruct PlayerInfo[33];
@@ -35,13 +35,13 @@ function Timer()
   for (i=0;i<ArrayCount(PlayerInfo);++i)
   {
     if (PlayerInfo[i].zzPawn == none)
-      return;
+      continue;
 
     if (PlayerInfo[i].zzPawn.IsA('Spectator'))
-      return;
+      continue;
     
     if (PlayerPawn(PlayerInfo[i].zzPawn) == none)
-      return;
+      continue;
     
     if (PlayerInfo[i].zzHWID == "")
     {
@@ -49,7 +49,7 @@ function Timer()
       LogACEInfo(PlayerInfo[i]);
     }
     else
-      return;
+      continue;
   }
 }
 
@@ -146,18 +146,38 @@ function StartLog()
 function LogPlayerInfo(Pawn Player)
 {
   local int i;
+  local bool found;
 
   Super.LogPlayerInfo(Player);
 
   If (Player.IsA('Spectator'))
     return;
 
-   // Setup a playerinfo struct for this player
-   for (i=0;i<32;++i)
-   {
-      if (PlayerInfo[i].zzID == -1) // This slot is free
-         break;
-   }
+  // Check if this player has already been logged
+  for (i = 0; i < ArrayCount(PlayerInfo); ++i)
+  {
+        if (PlayerInfo[i].zzPlayerName == Player.PlayerReplicationInfo.PlayerName)
+        {
+            found = true;
+            break;
+        }
+  }
+
+  if (!found)
+  {
+      for (i = 0; i < 4; ++i)
+      {
+          if (PlayerInfo[i].zzID == -1) // This slot is free
+              break;
+      }
+  }
+  
+  // If no free slot is found and player is not already logged, log an error or handle appropriately
+  if (i == ArrayCount(PlayerInfo) && !found)
+  {
+      Log("No free slots available in PlayerInfo array for new player.");
+      return;
+  }
 
    PlayerInfo[i].zzID = Player.PlayerReplicationInfo.PlayerID;
    PlayerInfo[i].zzPawn = Player;
@@ -754,5 +774,5 @@ function LogMutatorList()
 
 defaultproperties
 {
-	zzVersion="1.0"
+	zzVersion="1.1"
 }
