@@ -156,41 +156,47 @@ function LogPlayerInfo(Pawn Player)
   // Check if this player has already been logged
   for (i = 0; i < ArrayCount(PlayerInfo); ++i)
   {
-        if (PlayerInfo[i].zzPlayerName == Player.PlayerReplicationInfo.PlayerName)
-        {
-            found = true;
-            break;
-        }
+    if (PlayerInfo[i].zzPlayerName == Player.PlayerReplicationInfo.PlayerName)
+    {
+      found = true;
+      break;
+    }
   }
 
   if (!found)
   {
-      for (i = 0; i < 4; ++i)
-      {
-          if (PlayerInfo[i].zzID == -1) // This slot is free
-              break;
-      }
+    for (i = 0; i < ArrayCount(PlayerInfo); ++i)
+    {
+      if (PlayerInfo[i].zzID == -1) // This slot is free
+        break;
+    }
   }
   
-  // If no free slot is found and player is not already logged, log an error or handle appropriately
+  // If no free slot is found and player is not already logged, log an error and return
   if (i == ArrayCount(PlayerInfo) && !found)
   {
       Log("No free slots available in PlayerInfo array for new player.");
       return;
   }
 
-   PlayerInfo[i].zzID = Player.PlayerReplicationInfo.PlayerID;
-   PlayerInfo[i].zzPawn = Player;
-   PlayerInfo[i].zzSpree = 0;
-   PlayerInfo[i].zzCombo = 1;
-   PlayerInfo[i].zzKills = 0;
-   PlayerInfo[i].zzDeaths = 0;
-   PlayerInfo[i].zzSuicides = 0;
-   PlayerInfo[i].zzTeamKills = 0;
-   PlayerInfo[i].zzLastKill = 0.0;
-   PlayerInfo[i].zzEndTime = 0.0;
-   PlayerInfo[i].zzJoinTime = Level.TimeSeconds;
-   PlayerInfo[i].bHasFlag = false;
+  PlayerInfo[i].zzID = Player.PlayerReplicationInfo.PlayerID;
+  PlayerInfo[i].zzPawn = Player;
+  PlayerInfo[i].zzPlayerName = Player.PlayerReplicationInfo.PlayerName;
+  PlayerInfo[i].zzJoinTime = Level.TimeSeconds;
+
+  // Only reset stats if it's a new player
+  if (!found)
+  {
+    PlayerInfo[i].zzSpree = 0;
+    PlayerInfo[i].zzCombo = 1;
+    PlayerInfo[i].zzKills = 0;
+    PlayerInfo[i].zzDeaths = 0;
+    PlayerInfo[i].zzSuicides = 0;
+    PlayerInfo[i].zzTeamKills = 0;
+    PlayerInfo[i].zzLastKill = 0.0;
+    PlayerInfo[i].zzEndTime = 0.0;
+    PlayerInfo[i].bHasFlag = false;
+  }
 
 }
 
