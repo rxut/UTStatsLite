@@ -4,8 +4,10 @@ var bool bAceInstalled;
 var bool bFirstBlood;
 var bool bGameStarted;
 
+var UTStatsBufferNode BufferHead;
+var UTStatsBufferNode CurrentBuffer;
+
 var string zzComboCode[4];
-var string zzBuffer;
 var string zzVersion;
 var string zzMutatorList;
 
@@ -65,7 +67,8 @@ function LogStandardInfo()
     local mutator zzMutator;
 
     // Setup the buffer
-    zzBuffer = "";
+    BufferHead = None;
+    CurrentBuffer = None;
 
     // Setup the PlayerInfo structs
     for (i=0;i<32;++i)
@@ -621,31 +624,95 @@ function AddToBuffer ( int zzPlayerID )
 
 }
 
-function BufferLog ( string zzTag, string zzType, int zzPlayerID, string zzValue )
+function BufferLog(string zzTag, string zzType, int zzPlayerID, string zzValue)
 {
-    zzBuffer = zzBuffer$":::"$zzTag$chr(9)$zzType$chr(9)$string(zzPlayerID)$chr(9)$zzValue;
+    local string Entry;
+    local UTStatsBufferNode NewNode;
+    
+    // Format the entry
+    Entry = ":::" $ zzTag $ Chr(9) $ zzType $ Chr(9) $ string(zzPlayerID) $ Chr(9) $ zzValue;
+    
+    // If we don't have a buffer yet, create one
+    if (CurrentBuffer == None)
+    {
+        CurrentBuffer = new class'UTStatsBufferNode';
+        BufferHead = CurrentBuffer;
+    }
+    
+    // If adding this entry would exceed the buffer size, create a new node
+    if (CurrentBuffer.CurrentSize + Len(Entry) > CurrentBuffer.MaxBufferSize)
+    {
+        NewNode = new class'UTStatsBufferNode';
+        CurrentBuffer.Next = NewNode;
+        CurrentBuffer = NewNode;
+    }
+    
+    // Add the entry to the current buffer using $= for efficient appending
+    CurrentBuffer.Buffer $= Entry;
+    CurrentBuffer.CurrentSize += Len(Entry);
 }
 
-function ProcessBuffer () // This will cause extreme cpu usage on the server for a sec :)
+function ProcessBuffer()
 {
-    local int index,i;
-
-    while (InStr(zzBuffer,":::") != -1)
+    local UTStatsBufferNode CurrentNode;
+    local string CurrentEntry;
+    local int index;
+    local int i;
+    
+    // Process each node in the linked list
+    CurrentNode = BufferHead;
+    while (CurrentNode != None)
     {
-        index = InStr(zzBuffer,":::");
-        LogEventString(GetTimeStamp()$chr(9)$Left(zzBuffer,index));
-        zzBuffer = Mid(zzBuffer,index+3);
-    }
-
-    LogEventString(GetTimeStamp()$chr(9)$zzBuffer);
-
-    if (Level.Game.IsA('TeamGamePlus')) // Requested by the php-coders :o
-    {
-        for (i=0;i<TeamGamePlus(Level.Game).MaxTeams;++i)
+        // Process each entry in the current buffer
+        while (InStr(CurrentNode.Buffer, ":::") != -1)
         {
-            LogEventString(GetTimeStamp()$chr(9)$"teamscore"$chr(9)$string(i)$chr(9)$string(int(TeamGamePlus(Level.Game).Teams[i].Score)));
+            index = InStr(CurrentNode.Buffer, ":::");
+            CurrentEntry = Left(CurrentNode.Buffer, index);
+            if (Len(CurrentEntry) > 0)
+            {
+                LogEventString(GetTimeStamp() $ Chr(9) $ CurrentEntry);
+            }
+            CurrentNode.Buffer = Mid(CurrentNode.Buffer, index + 3);
+        }
+        
+        // Process any remaining entry in the buffer
+        if (Len(CurrentNode.Buffer) > 0)
+        {
+            LogEventString(GetTimeStamp() $ Chr(9) $ CurrentNode.Buffer);
+        }
+        
+        CurrentNode = CurrentNode.Next;
+    }
+    
+    // Log team scores if needed
+    if (Level.Game.IsA('TeamGamePlus'))
+    {
+        for (i = 0; i < TeamGamePlus(Level.Game).MaxTeams; ++i)
+        {
+            LogEventString(GetTimeStamp() $ Chr(9) $ "teamscore" $ Chr(9) $ string(i) $ Chr(9) $ string(int(TeamGamePlus(Level.Game).Teams[i].Score)));
         }
     }
+    
+    // Clean up the buffer
+    CleanupBuffer();
+}
+
+function CleanupBuffer()
+{
+    local UTStatsBufferNode CurrentNode, NextNode;
+    
+    CurrentNode = BufferHead;
+    while (CurrentNode != None)
+    {
+        NextNode = CurrentNode.Next;
+        // Clear the buffer string
+        CurrentNode.Buffer = "";
+        CurrentNode.Next = None;
+        CurrentNode = NextNode;
+    }
+    
+    BufferHead = None;
+    CurrentBuffer = None;
 }
 
 // =============================================================================
