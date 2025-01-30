@@ -170,7 +170,7 @@ function LogPlayerInfo(Pawn Player)
   {
     for (i = 0; i < ArrayCount(PlayerInfo); ++i)
     {
-      if (PlayerInfo[i].zzID == -1) // This slot is free
+      if (PlayerInfo[i].zzID == -1 && PlayerInfo[i].zzPlayerName == "") // This slot is free
         break;
     }
   }
