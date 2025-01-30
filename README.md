@@ -4,6 +4,8 @@ This is a modified "lite" version of the original UTStats that removes the buggy
 
 It also includes ACE HWID, MAC1, and MAC2 logging to accurately keep track of stats for players who use different nicknames or change IPs (e.g., tunnels or VPNs).
 
+This mod is designed to work with **Node UTStats Lite** https://github.com/scottadkin/node-utstats-lite
+
 ## Installation
 From the System folder in the zip file, copy to your UTServer\System folder the following files:
 
@@ -18,4 +20,6 @@ ServerActors=UTStatsLite.UTStatsSA
 Log files are stored in the ..\Logs folder inside your main UT99 server location.
 
 ### Credits
+Ooper for building the Note UTStats Lite website and helping with the UTStatsLite mutator.
+
 UTStats mod was originally created by azazel, AnthraX, and toa, with additions by Skillz, killereye, Enakin, Loki and rork.
